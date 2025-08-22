@@ -10,7 +10,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({
       validationSchema: Joi.object({
         NODE_ENV: Joi.string()
-          .valid('development', 'production', 'testing')
+          .valid('development', 'production', 'staging')
           .required(),
         SERVER_PORT: Joi.string().default('3333'),
         DATABASE_URL: Joi.string().required(),
