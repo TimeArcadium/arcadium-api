@@ -13,7 +13,7 @@
       "test": "vitest run",
       "test:watch": "vitest",
       "test:e2e": "vitest run -c vitest.e2e.config.ts",
-      "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run",
+      "migration:run": "echo 'No migrations configured' && exit 0",
       "swagger:gen": "SWAGGER_ENABLED=true SWAGGER_WRITE=true node dist/main.js && exit 0"
     },
     "dependencies": {
