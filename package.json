@@ -5,36 +5,35 @@
     "author": "Time Arcadium",
     "license": "MIT",
     "scripts": {
-      "start": "nest start",
-      "start:dev": "nest start --watch",
-      "start:prod": "node dist/main.js",
-      "build": "tsc -p tsconfig.build.json",
-      "lint": "eslint . --ext .ts",
-      "test": "vitest run",
-      "test:watch": "vitest",
-      "test:e2e": "vitest run -c vitest.e2e.config.ts",
-      "migration:run": "echo 'No migrations configured' && exit 0",
-      "swagger:gen": "SWAGGER_ENABLED=true SWAGGER_WRITE=true node dist/main.js && exit 0"
+        "start": "nest start",
+        "start:dev": "nest start --watch",
+        "start:prod": "node dist/main.js",
+        "build": "tsc -p tsconfig.build.json",
+        "lint": "eslint . --ext .ts",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:e2e": "vitest run -c vitest.e2e.config.ts",
+        "migration:run": "echo 'No migrations configured' && exit 0",
+        "swagger:gen": "SWAGGER_ENABLED=true SWAGGER_WRITE=true node dist/main.js && exit 0"
     },
     "dependencies": {
-      "@nestjs/common": "^11.1.6",
-      "@nestjs/core": "^11.1.6",
-      "@nestjs/platform-express": "^11.1.6",
-      "@nestjs/swagger": "^11.2.0",
-      "reflect-metadata": "^0.2.2",
-      "rxjs": "^7.8.2",
-      "swagger-ui-express": "^5.0.1"
+        "@nestjs/common": "^11.1.6",
+        "@nestjs/core": "^11.1.6",
+        "@nestjs/platform-express": "^11.1.6",
+        "@nestjs/swagger": "^11.2.0",
+        "reflect-metadata": "^0.2.2",
+        "rxjs": "^7.8.2",
+        "swagger-ui-express": "^5.0.1"
     },
     "devDependencies": {
-      "@types/node": "^20.11.30",
-      "@types/supertest": "^6.0.3",
-      "@typescript-eslint/eslint-plugin": "^8.40.0",
-      "@typescript-eslint/parser": "^8.40.0",
-      "eslint": "^8.57.0",
-      "supertest": "^7.1.4",
-      "ts-node": "^10.9.2",
-      "typescript": "^5.4.5",
-      "vitest": "^1.6.1"
+        "@types/node": "^20.11.30",
+        "@types/supertest": "^6.0.3",
+        "@typescript-eslint/eslint-plugin": "^8.40.0",
+        "@typescript-eslint/parser": "^8.40.0",
+        "eslint": "^8.57.1",
+        "supertest": "^7.1.4",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5",
+        "vitest": "^1.6.1"
     }
-  }
-  
+}
