@@ -1,0 +1,159 @@
+name: CI/CD - Arcadium API
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+  packages: write   # necessário para publicar no GHCR
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: arcadium_test
+        options: >-
+          --health-cmd="pg_isready -U test -d arcadium_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://test:test@localhost:5432/arcadium_test
+      # Se usar TypeORM, Prisma ou Sequelize, ajuste a env acima conforme seu ORM.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Descomente conforme seu ORM
+      - name: Run migrations (if present)
+        run: |
+          npm run migration:run --if-present
+          # npx prisma generate || true
+          # npx prisma migrate deploy || true
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Unit/Integration tests (Vitest)
+        run: npm run test --if-present
+
+      - name: E2E tests (Supertest)
+        run: npm run test:e2e --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      # (Opcional) gerar OpenAPI e publicar artifact
+      - name: Generate Swagger (if present)
+        run: npm run swagger:gen --if-present
+      - name: Upload OpenAPI artifact (if exists)
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: openapi.json
+          if-no-files-found: ignore
+
+  docker-release:
+    name: Build & Push Docker (GHCR)
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/arcadium-api:latest
+            ghcr.io/${{ github.repository_owner }}/arcadium-api:${{ github.sha }}
+
+  deploy-flyio:
+    name: Deploy (Fly.io)
+    needs: docker-release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_TARGET == 'flyio'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy
+        run: flyctl deploy --image ghcr.io/${{ github.repository_owner }}/arcadium-api:latest --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  deploy-render:
+    name: Deploy (Render)
+    needs: docker-release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_TARGET == 'render'
+
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+  deploy-ssh:
+    name: Deploy (SSH + Docker) - VPS
+    needs: docker-release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_TARGET == 'ssh'
+
+    steps:
+      - name: SSH to server and deploy container
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker pull ghcr.io/${{ github.repository_owner }}/arcadium-api:latest
+            docker stop arcadium-api || true
+            docker rm arcadium-api || true
+            docker run -d --name arcadium-api --restart=always \
+              -p 3000:3000 \
+              -e NODE_ENV=production \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e OTEL_EXPORTER_OTLP_ENDPOINT="${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}" \
+              -e OTEL_SERVICE_NAME="arcadium-api" \
+              ghcr.io/${{ github.repository_owner }}/arcadium-api:latest
+            # docker exec arcadium-api npm run migration:run || true
