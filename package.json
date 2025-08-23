@@ -14,7 +14,7 @@
         "test:watch": "vitest",
         "test:e2e": "vitest run --dir test/e2e",
         "migration:run": "echo 'No migrations configured' && exit 0",
-        "swagger:gen": "SWAGGER_ENABLED=true SWAGGER_WRITE=true node dist/main.js && exit 0"
+        "swagger:gen": "SWAGGER_WRITE=true node dist/main.js"
     },
     "dependencies": {
         "@nestjs/common": "^11.1.6",
